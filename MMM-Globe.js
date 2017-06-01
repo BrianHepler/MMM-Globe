@@ -12,7 +12,10 @@ Module.register("MMM-Globe",{
 	// Default module config.
 	defaults: {
 		size : "medium",
-        locations : []
+        locations : [],
+		markers: [],
+		viewAngle: 0,
+		dayLength: 28
 	},
 
 	// Define required scripts.
@@ -36,6 +39,14 @@ Module.register("MMM-Globe",{
 		this.globe = null;
 		this.translatedSize = this.sizeTranslate(this.config.size);
         this.locations = this.config.locations;
+        this.viewAngle = this.convertDegreesToRadians(this.config.viewAngle);
+        if (this.config.dayLength >= 0) {
+            this.dayLength = parseFloat(this.config.dayLength);
+        }
+	},
+
+	convertDegreesToRadians: function(degrees) {
+		return (parseFloat(degrees) * Math.PI) / 180;
 	},
 
 	// Override dom generator.
@@ -52,15 +63,25 @@ Module.register("MMM-Globe",{
 	},
 
 	createGlobe : function(width, height) {
-	    if(this.locations.length <= 0) {
-            Array.prototype.push.apply(data, defaultData);
+		Log.info("Loading data...");
+		var globeData = [];
+
+	    if(this.locations.length <= 0) {  // enforce config locations
+			Log.info("Loading default locations.");
+            Array.prototype.push.apply(globeData, defaultData);
         }
         else {
-            Array.prototype.push.apply(data, this.locations);
+			Log.info("Loading custom locations.")
+            Array.prototype.push.apply(globeData, this.locations);
         }
+
+
+        Log.info("Creating globe... (" + this.config.dayLength + " sec/rotation)");
 		var globe = new ENCOM.Globe(width, height, {
 		tiles: grid.tiles, // The locations of the hexes; this really should be refactored into a standard 3d model.. .from grid.js
-		data: data // The default pins (Boston, Moscow, etc, and all the non-labelled ones)... from data.js
+		data: globeData, // The default pins (Boston, Moscow, etc, and all the non-labelled ones)... from data.js
+		viewAngle: this.viewAngle, // tilt the globe
+		dayLength: this.dayLength * 1000 // time for one rotation
 		});
 
 		globe.init(animate);  // tell the globe to start the animation loop when everything has been intialized
@@ -71,6 +92,7 @@ Module.register("MMM-Globe",{
 		}
 
 		this.globe = globe;
+		data = null;
 		return globe;
 	},
 
@@ -87,5 +109,9 @@ Module.register("MMM-Globe",{
 			case "x-large" :
 			return 1;
 		}
+	},
+
+	speedTranslate : function(speed) {
+
 	}
 });
